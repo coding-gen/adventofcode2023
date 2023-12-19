@@ -56,11 +56,20 @@ def calculate_winning_amount(matches):
     return 0
 
 
+def count_scratchcards(d):
+    return sum(d.values())
+
+
 def controller(schematic):
     """
+    Part 1:
     Count how many numbers are present in both lists.
     Calculate 2^(n-1) where n is the count.
     Sum the previous calculation over all cards.
+
+    Part 2:
+    The count of matches on each line determines how many subsequent cards are copied.
+    The count of those next cards is increased by one * the count of copies of the current card.
 
     Usage example:
     Card 1: 41 48 83 86 17 | 83 86  6 31 17  9 48 53
@@ -70,20 +79,29 @@ def controller(schematic):
     Card 5: 87 83 26 28 32 | 88 30 70 12 93 22 82 36
     Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11
 
-    result: 13
+    part1 result: 13
+    part2 result: 30
     """
-    sum = 0
+    part1_sum = 0
+    card_counts = {}
     for line in schematic:
         id, winning_numbers, chosen_numbers = parse_input(line)
         matches = find_matches(winning_numbers, chosen_numbers)
-        sum += calculate_winning_amount(matches)
-    return sum
+        part1_sum += calculate_winning_amount(matches)
+
+        # Calculation for part 2
+        card_counts[id] = card_counts.get(id, 1)
+        multiplier = card_counts.get(id)
+        for offset in range(1, len(matches) + 1):
+            card_counts[id + offset] = card_counts.get(id + offset, 1) + multiplier
+
+    return (part1_sum, count_scratchcards(card_counts))
 
 
 if __name__ == '__main__':   
     f = open(sys.argv[1], "r")
     contents = f.readlines()
     f.close() 
-    sum = controller(contents)
-    print(f"Winning: {sum}")
-
+    part1, part2 = controller(contents)
+    print(f"Winning sum of power of 2: {part1}")
+    print(f"Winning count of scratchcards: {part2}")
