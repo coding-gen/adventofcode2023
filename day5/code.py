@@ -26,6 +26,31 @@ def parse_input(paper):
     return construction
 
 
+def convert(seed, conversion_list):
+    """
+    Convert an item index using the given mapping:
+    [destination_range_start, source_range_start, range_length]
+
+    Usage examples:
+    >>> convert(79, [[50, 98, 2], [52, 50, 48]])
+    81
+    >>> convert(14, [[50, 98, 2], [52, 50, 48]])
+    14
+    >>> convert(55, [[50, 98, 2], [52, 50, 48]])
+    57
+    >>> convert(13, [[50, 98, 2], [52, 50, 48]])
+    13
+    """
+    for dest, source, range_length in conversion_list:
+        if seed >= source and seed <= source + range_length:
+            return dest + seed - source
+    return seed
+
+
+def walk_map(histories, table, conversion_name):
+    return [[convert(history[0], table[conversion_name])] + history for history in histories]
+
+
 def calculate_winning_amount(matches):
     length = len(matches)
     if length > 0:
@@ -100,6 +125,28 @@ def controller(almanac):
     table = parse_input(almanac)
     for mapping in table.items():
         print (mapping)
+    # TODO could change input parsing to list of tuples instead of dict, and walk its conversions in order of index. 
+    # Here we have to call them by key name.
+    # It might end up being useful to see the whole path per seed, so we'll track it.
+    soils = [[convert(seed, table['seed-to-soil']), seed] for seed in table['seeds']]
+    fertilizers = walk_map(soils, table, 'soil-to-fertilizer')
+    waters = walk_map(fertilizers, table, 'fertilizer-to-water')
+    lights = walk_map(waters, table, 'water-to-light')
+    temperatures = walk_map(lights, table, 'light-to-temperature')
+    humidities = walk_map(temperatures, table, 'temperature-to-humidity')
+    mapping_paths = walk_map(humidities, table, 'humidity-to-location')
+
+    # By prepending the seed's planting conditions history with each new element in walk_map(), 
+    # it allows us to simply sort at the outermost list level, to get the lowest location per seed.
+    mapping_paths.sort()
+    print(f"lowest location: {mapping_paths[0][0]}")
+
+    """
+    for seed in table['seeds']:
+        converted.append(convert(seed, table['seed-to-soil']))
+        print(f"the conversion: from {seed} to {convert(seed, table['seed-to-soil'])}")
+    """
+
 
     return (part1_sum, part2_calculation)
 
