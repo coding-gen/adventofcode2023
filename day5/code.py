@@ -3,8 +3,27 @@
 import sys
 
 
-def parse_input(line):
-    return line
+def parse_input(paper):
+    construction = {}
+    i = 0
+    while i < len(paper):
+        if len(paper[i]) < 2:
+            # empty row
+            i += 1
+        if paper[i][:5] == 'seeds':
+            line = paper[i].split(':')[1].strip().split()
+            construction['seeds'] = [int(seed) for seed in line]
+        elif not paper[i][0].isnumeric(): 
+            mappings = []
+            name = paper[i].split()[0]
+            i += 1
+            while i<len(paper) and paper[i][0].isnumeric():
+                line = paper[i].split()
+                mappings.append([int(item) for item in line])
+                i += 1
+            construction[name] = mappings
+        i += 1
+    return construction
 
 
 def calculate_winning_amount(matches):
@@ -21,7 +40,20 @@ def count_scratchcards(d):
 def controller(almanac):
     """
     Part 1:
-
+    Use the given mapping of various seed growing conditions to find the nearest location for the given seeds.
+    Two ways to accomplish:
+    Build giant list or dict with each calculated mapping. Look up the seeds in the maps.
+        Benefit: fast lookup, low CPU, easy to think about.
+        Cost: building giant map tables for only a few seeds.
+        Here: Very large tables, very few seeds
+    Automatically handle the calculations that convert through ranges over mappings.
+        Benefit: not build huge tables. Feels more clever.
+        Cost: easy to do manually creating if statements. 
+            Harder to get machine to automatically pull ranges and create calculations.
+            Must calculate all ranges and lookup, for each seed.
+            More CPU hungry.
+            Here: small set of seeds, large tables
+    Option2.
 
     Usage example:
         seeds: 79 14 55 13
@@ -65,8 +97,9 @@ def controller(almanac):
     part1_sum = 0
     part2_calculation = 0
 
-    for line in almanac:
-        pass
+    table = parse_input(almanac)
+    for mapping in table.items():
+        print (mapping)
 
     return (part1_sum, part2_calculation)
 
