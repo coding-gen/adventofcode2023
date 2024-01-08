@@ -12,12 +12,17 @@ def parse_input(paper):
             i += 1
         if paper[i][:5] == 'seeds':
             line = paper[i].split(':')[1].strip().split()
-            construction['seeds'] = [int(seed) for seed in line]
+            seed_counter = 0
+            while seed_counter < len(line):
+                seed_id = int(line[seed_counter])
+                seed_range = int(line[seed_counter + 1])
+                construction['seeds'] = construction.get('seeds', []) + [{'id': seed_id, 'range': seed_range}]
+                seed_counter += 2
         elif not paper[i][0].isnumeric(): 
             mappings = []
             name = paper[i].split()[0]
             i += 1
-            while i<len(paper) and paper[i][0].isnumeric():
+            while i < len(paper) and paper[i][0].isnumeric():
                 line = paper[i].split()
                 mappings.append([int(item) for item in line])
                 i += 1
@@ -47,19 +52,23 @@ def convert(seed, conversion_list):
     return seed
 
 
+def unpack_seed_ranges(seeds):
+    """
+    Unpack all the seeds in the given range.
+
+    Usage example:
+    >>> unpack_seed_ranges([{'id': 79, 'range': 14}, {'id': 55, 'range': 13}])
+    [[79], [80], [81], [82], [83], [84], [85], [86], [87], [88], [89], [90], [91], [92], [55], [56], [57], [58], [59], [60], [61], [62], [63], [64], [65], [66], [67]]
+    """
+    full_seeds = []
+    for seed in seeds:
+        for i in range(seed['range']):
+            full_seeds.append([seed['id'] + i])
+    return full_seeds
+
+
 def walk_map(histories, table, conversion_name):
     return [[convert(history[0], table[conversion_name])] + history for history in histories]
-
-
-def calculate_winning_amount(matches):
-    length = len(matches)
-    if length > 0:
-        return 2 ** (length -1)
-    return 0
-
-
-def count_scratchcards(d):
-    return sum(d.values())
 
 
 def controller(almanac):
@@ -116,19 +125,28 @@ def controller(almanac):
         56 93 4
 
     part1 result: 35
-    part2 result: 
+    part2 result: 46
     """
 
-    part1_sum = 0
-    part2_calculation = 0
-
     table = parse_input(almanac)
-    for mapping in table.items():
-        print (mapping)
-    # TODO could change input parsing to list of tuples instead of dict, and walk its conversions in order of index. 
-    # Here we have to call them by key name.
-    # It might end up being useful to see the whole path per seed, so we'll track it.
-    soils = [[convert(seed, table['seed-to-soil']), seed] for seed in table['seeds']]
+    
+    # I chose to track the history of each seed's path through the mappings.
+    # In a practical scenario where you'd actually plant the seeds, 
+    # you'd need info on each of the planting conditions. 
+    # Here we have already calculated it per seed, so we may as well keep it for later use.
+
+    """
+    for each seed
+    convert all the way to location
+    if smaller than current location, swap it out
+    high cpu usage
+    much lower memory usage.
+    """
+    # next seed
+    # convert to location
+    # location comparison
+    full_seeds = unpack_seed_ranges(table['seeds'])
+    soils = walk_map(full_seeds, table, 'seed-to-soil')
     fertilizers = walk_map(soils, table, 'soil-to-fertilizer')
     waters = walk_map(fertilizers, table, 'fertilizer-to-water')
     lights = walk_map(waters, table, 'water-to-light')
@@ -136,25 +154,13 @@ def controller(almanac):
     humidities = walk_map(temperatures, table, 'temperature-to-humidity')
     mapping_paths = walk_map(humidities, table, 'humidity-to-location')
 
-    # By prepending the seed's planting conditions history with each new element in walk_map(), 
-    # it allows us to simply sort at the outermost list level, to get the lowest location per seed.
     mapping_paths.sort()
-    print(f"lowest location: {mapping_paths[0][0]}")
-
-    """
-    for seed in table['seeds']:
-        converted.append(convert(seed, table['seed-to-soil']))
-        print(f"the conversion: from {seed} to {convert(seed, table['seed-to-soil'])}")
-    """
-
-
-    return (part1_sum, part2_calculation)
+    return (mapping_paths[0][0])
 
 
 if __name__ == '__main__':   
     f = open(sys.argv[1], "r")
     contents = f.readlines()
     f.close() 
-    part1, part2 = controller(contents)
-    print(f"Part1 sum: {part1}")
-    print(f"Part2 calculation: {part2}")
+    part2 = controller(contents)
+    print(f"lowest location: {part2}")
