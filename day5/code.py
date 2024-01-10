@@ -1,6 +1,7 @@
 #! /usr/bin/python
 
 import sys
+from datetime import datetime
 
 
 def parse_input(paper):
@@ -31,6 +32,21 @@ def parse_input(paper):
     return construction
 
 
+def unpack_seed_ranges(seeds):
+    """
+    Unpack all the seeds in the given range.
+
+    Usage example:
+    >>> unpack_seed_ranges([{'id': 79, 'range': 14}, {'id': 55, 'range': 13}])
+    [[79], [80], [81], [82], [83], [84], [85], [86], [87], [88], [89], [90], [91], [92], [55], [56], [57], [58], [59], [60], [61], [62], [63], [64], [65], [66], [67]]
+    """
+    full_seeds = []
+    for seed in seeds:
+        for i in range(seed['range']):
+            full_seeds.append([seed['id'] + i])
+    return full_seeds
+
+
 def convert(seed, conversion_list):
     """
     Convert an item index using the given mapping:
@@ -52,22 +68,7 @@ def convert(seed, conversion_list):
     return seed
 
 
-def unpack_seed_ranges(seeds):
-    """
-    Unpack all the seeds in the given range.
-
-    Usage example:
-    >>> unpack_seed_ranges([{'id': 79, 'range': 14}, {'id': 55, 'range': 13}])
-    [[79], [80], [81], [82], [83], [84], [85], [86], [87], [88], [89], [90], [91], [92], [55], [56], [57], [58], [59], [60], [61], [62], [63], [64], [65], [66], [67]]
-    """
-    full_seeds = []
-    for seed in seeds:
-        for i in range(seed['range']):
-            full_seeds.append([seed['id'] + i])
-    return full_seeds
-
-
-def walk_map(histories, table, conversion_name):
+def walk_map_over_list(histories, table, conversion_name):
     return [[convert(history[0], table[conversion_name])] + history for history in histories]
 
 
@@ -127,12 +128,21 @@ def controller(almanac):
     part1 result: 35
     part2 result: 46
     """
-
+    start_time = datetime.now()
+    print(f"{datetime.now().time()} Info: Program start.")
     table = parse_input(almanac)
-    
+    print(f"{datetime.now().time()} Info: Finished parsing input.")
+
+    # Initialize the min location to a large number:
+    # the largest ending point of a range from the input.
+    min_location = table['humidity-to-location'][0][0] +  table['humidity-to-location'][0][2]
+    for loc in table['humidity-to-location']:
+        if loc[0] + loc[2] > min_location:
+            min_location = loc[0] + loc[2]
+    print(f"{datetime.now().time()} Info: Initial min location {min_location}")
     # I chose to track the history of each seed's path through the mappings.
-    # In a practical scenario where you'd actually plant the seeds, 
-    # you'd need info on each of the planting conditions. 
+    # In a practical scenario where you'd actually plant the seeds,
+    # you'd need info on each of the planting conditions.
     # Here we have already calculated it per seed, so we may as well keep it for later use.
 
     """
@@ -145,17 +155,39 @@ def controller(almanac):
     # next seed
     # convert to location
     # location comparison
-    full_seeds = unpack_seed_ranges(table['seeds'])
-    soils = walk_map(full_seeds, table, 'seed-to-soil')
-    fertilizers = walk_map(soils, table, 'soil-to-fertilizer')
-    waters = walk_map(fertilizers, table, 'fertilizer-to-water')
-    lights = walk_map(waters, table, 'water-to-light')
-    temperatures = walk_map(lights, table, 'light-to-temperature')
-    humidities = walk_map(temperatures, table, 'temperature-to-humidity')
-    mapping_paths = walk_map(humidities, table, 'humidity-to-location')
+    # table['seeds']:
+    # [{'id': 79, 'range': 14}, {'id': 55, 'range': 13}]
 
+    for seed in table['seeds']:
+        for i in range(seed['range']):
+            soil = convert(seed['id'] + i, table['seed-to-soil'])
+            fertilizer = convert(soil, table['soil-to-fertilizer'])
+            water = convert(fertilizer, table['fertilizer-to-water'])
+            light = convert(water, table['water-to-light'])
+            temperature = convert(light, table['light-to-temperature'])
+            humidity = convert(temperature, table['temperature-to-humidity'])
+            location = convert(humidity, table['humidity-to-location'])
+            if location < min_location:
+                min_location = location
+                print(f"{datetime.now().time()} Info: intermediary min location: {min_location}")
+            if i % 1000000 == 0:
+                print(f"{datetime.now().time()} Info: Reached to {i} of range {seed['range']}")
+        print(f"{datetime.now().time()} Info: Finished a seed range.")
+    """           
+    full_seeds = unpack_seed_ranges(table['seeds'])
+    soils = walk_map_over_list(full_seeds, table, 'seed-to-soil')
+    fertilizers = walk_map_over_list(soils, table, 'soil-to-fertilizer')
+    waters = walk_map_over_list(fertilizers, table, 'fertilizer-to-water')
+    lights = walk_map_over_list(waters, table, 'water-to-light')
+    temperatures = walk_map_over_list(lights, table, 'light-to-temperature')
+    humidities = walk_map_over_list(temperatures, table, 'temperature-to-humidity')
+    mapping_paths = walk_map_over_list(humidities, table, 'humidity-to-location')
     mapping_paths.sort()
     return (mapping_paths[0][0])
+    """
+    print(f"{datetime.now().time()} Info: Finished program.")
+    print(f"{datetime.now().time()} Info: Program runtime: {datetime.now() - start_time}")
+    return min_location
 
 
 if __name__ == '__main__':   
